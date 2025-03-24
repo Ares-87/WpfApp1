@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -18,25 +20,30 @@ namespace WpfApp1
         private Point? lastCenterPositionOnTarget;
         private Point? lastDragPoint;
         private Point? lastMousePositionOnTarget;
+        private ScaleTransform scaleTransform;
 
         public MainWindow()
-        {          
+        {
             //Imposto la qualità massima di rendering immagini ed elementi grafici
             RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.HighQuality);
 
             InitializeComponent();
 
             //MAPPA 
-           ScrollMap.ScrollChanged += MapScrollChanged;
+            ScrollMap.ScrollChanged += MapScrollChanged;
             ScrollMap.PreviewMouseWheel += MapMouseWheel;
             ScrollMap.PreviewMouseRightButtonDown += MapRightButtonDown;
             ScrollMap.PreviewMouseRightButtonUp += MapRightButtonUp;
             ScrollMap.MouseMove += OnMouseMove;
             sliderMap.ValueChanged += MapSliderValueChanged; // Aggiunto per gestire il cambiamento dal codice.
+
+            scaleTransform = new ScaleTransform(1, 1);
+            CanvasMap.RenderTransform = scaleTransform;
+            CanvasMap.RenderTransformOrigin = new Point(0.5, 0.5); // Imposta il centro di scala al centro del Canvas
         }
 
         private void MapRightButtonDown(object sender, MouseButtonEventArgs e)
-        {        
+        {
             var mousePos = e.GetPosition(ScrollMap);
             if (mousePos.X <= ScrollMap.ViewportWidth && mousePos.Y < ScrollMap.ViewportHeight) //make sure we still can use the scrollbars
             {
@@ -98,13 +105,14 @@ namespace WpfApp1
                     //ScrollAnimationBehavior.AnimateScroll(ScrollMap, newOffsetX);
                     ScrollMap.ScrollToHorizontalOffset(newOffsetX);
                     ScrollMap.ScrollToVerticalOffset(newOffsetY);
+                    Debug.WriteLine($"ScrollToHorizontalOffset: {newOffsetX}");
+                    Debug.WriteLine($"ScrollToVerticalOffset: {newOffsetY}");
                 }
             }
         }
 
         private void MapMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            lastMousePositionOnTarget = Mouse.GetPosition(CanvasMap);
             double zoomFactor = 1.2; // Fattore di zoom
             double newValue;
 
@@ -120,20 +128,18 @@ namespace WpfApp1
             newValue = Math.Max(sliderMap.Minimum, Math.Min(sliderMap.Maximum, newValue));
 
             sliderMap.Value = newValue;
+
             e.Handled = true;
         }
 
         private void MapSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            scaleTransform.ScaleX = e.NewValue;
-            scaleTransform.ScaleY = e.NewValue;
-
-            var centerOfViewport = new Point(ScrollMap.ViewportWidth / 2, ScrollMap.ViewportHeight / 2);
-            lastCenterPositionOnTarget = ScrollMap.TranslatePoint(centerOfViewport, CanvasMap);
+            AnimateScale(e.NewValue);
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
+
             if (lastDragPoint.HasValue)
             {
                 Point posNow = e.GetPosition(ScrollMap);
@@ -149,6 +155,25 @@ namespace WpfApp1
                 ScrollMap.ScrollToHorizontalOffset(ScrollMap.HorizontalOffset - dX);
                 ScrollMap.ScrollToVerticalOffset(ScrollMap.VerticalOffset - dY);
             }
+            else
+            {
+                Point posNow = e.GetPosition(ScrollMap);
+                Debug.WriteLine($"posNow: {posNow}");
+                lastMousePositionOnTarget = posNow;
+            }
+        }
+
+        private void AnimateScale(double newValue)
+        {
+            var animation = new DoubleAnimation
+            {
+                To = newValue,
+                Duration = TimeSpan.FromMilliseconds(500), // Durata dell'animazione
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } // Effetto di easing per una transizione più fluida
+            };
+
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animation);
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animation);
         }
     }
 }

@@ -10,11 +10,7 @@
         <Grid x:Name="pageMap" Margin="0" ClipToBounds="True" Width="590" Height="590">
             <ScrollViewer x:Name="ScrollMap" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden">
                 <Canvas x:Name="CanvasMap" RenderTransformOrigin="0.5,0.5" MinWidth="590" MinHeight="590">
-                    <Canvas.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform x:Name="scaleTransform" />
-                        </TransformGroup>
-                    </Canvas.LayoutTransform>
+                  
                     <Rectangle x:Name="BgImgMap" Cursor="Cross" Width="{Binding ActualWidth, ElementName=CanvasMap}" Height="{Binding ActualWidth, ElementName=CanvasMap}">
                         <Rectangle.Fill>
                             <ImageBrush ImageSource="islandMap.jpg" />
